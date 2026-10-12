@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Usage for Dummies</title>
+<style>
+  /* El tema sigue al de claude.ai: sidepanel.js pone data-mode="light|dark"
+     en <html> con lo que leyó content.js. Mientras no haya dato, usa el del sistema. */
+  :root {
+    --bg: #F5F6F8; --ink: #1C2430; --muted: #6B7480; --track: #E1E4E9;
+    --fill: #1C2430; --pace: #8A94A3; --warn: #B7791F; --hot: #C2412D;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-mode="light"]) {
+      --bg: #15191F; --ink: #E8EBEF; --muted: #8A94A3; --track: #2A313B;
+      --fill: #E8EBEF; --pace: #6B7480; --warn: #E0A243; --hot: #EF7A64;
+      color-scheme: dark;
+    }
+  }
+  :root[data-mode="dark"] {
+    --bg: #15191F; --ink: #E8EBEF; --muted: #8A94A3; --track: #2A313B;
+    --fill: #E8EBEF; --pace: #6B7480; --warn: #E0A243; --hot: #EF7A64;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 20px 20px 24px; min-height: 100vh;
+    display: flex; flex-direction: column; gap: 28px;
+  }
+  header { display: flex; align-items: center; justify-content: space-between; }
+  h1 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  button {
+    font: inherit; color: var(--muted); background: none; border: 0;
+    cursor: pointer; padding: 6px; border-radius: 6px; line-height: 0;
+  }
+  button:hover { color: var(--ink); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  button.spin svg { animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { button.spin svg { animation: none; } }
+
+  #limits { display: flex; flex-direction: column; gap: 26px; }
+  .limit .row { display: flex; align-items: baseline; justify-content: space-between; }
+  .limit .name { color: var(--muted); font-size: 13px; }
+  .limit .pct {
+    font-size: 34px; font-weight: 300; letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums; line-height: 1;
+  }
+  .limit .pct small { font-size: 15px; color: var(--muted); margin-left: 1px; }
+  .bar { position: relative; height: 4px; background: var(--track); border-radius: 2px; margin: 10px 0 8px; }
+  .bar .fill { position: absolute; inset: 0 auto 0 0; background: var(--fill); border-radius: 2px; transition: width .4s ease; }
+  .bar .pace { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--pace); border-radius: 1px; }
+  .limit.warn .fill { background: var(--warn); }
+  .limit.hot  .fill { background: var(--hot); }
+  .limit .meta { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+  #chat { border-top: 1px solid var(--track); padding-top: 22px; display: flex; flex-direction: column; gap: 4px; }
+  #chat:empty { display: none; }
+  #chat .chatname { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .parts { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; margin-top: 6px; }
+  .parts span:nth-child(even) { text-align: right; color: var(--ink); }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .toggles { display: flex; flex-direction: column; gap: 10px; }
+  .toggles .title { font-size: 12px; color: var(--muted); }
+  .switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--ink); font-size: 13px; cursor: pointer; }
+  .switch input { appearance: none; flex: 0 0 auto; width: 32px; height: 18px; border-radius: 9px; background: var(--track); position: relative; cursor: pointer; transition: background .15s; border: 0; padding: 0; }
+  .switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+  .switch input:checked { background: #D97757; }
+  .switch input:checked::after { transform: translateX(14px); }
+  .switch:has(input:disabled) { opacity: .45; cursor: default; }
+  .notice { color: var(--muted); font-size: 13px; }
+  .notice strong { color: var(--ink); font-weight: 600; display: block; margin-bottom: 2px; }
+
+  footer { margin-top: auto; display: flex; flex-direction: column; gap: 12px; color: var(--muted); font-size: 12px; }
+  details summary { cursor: pointer; }
+  details[open] summary { margin-bottom: 8px; }
+  .org { display: flex; gap: 6px; }
+  input {
+    flex: 1; font: inherit; font-size: 12px; color: var(--ink); background: transparent;
+    border: 1px solid var(--track); border-radius: 6px; padding: 6px 8px;
+  }
+  .org button { font-size: 12px; line-height: 1.2; border: 1px solid var(--track); padding: 6px 10px; }
+  pre { font-size: 11px; white-space: pre-wrap; word-break: break-all; max-height: 200px; overflow: auto; margin-top: 8px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Claude Usage for Dummies</h1>
+    <button id="refresh" title="" aria-label="">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3"/>
+      </svg>
+    </button>
+  </header>
+
+  <main id="limits"></main>
+  <section id="chat"></section>
+
+  <section class="toggles">
+    <span class="title" id="inChatLabel"></span>
+    <label class="switch"><span id="toggleUsageLabel"></span><input type="checkbox" id="stripUsage" role="switch"></label>
+    <label class="switch"><span id="toggleFableLabel"></span><input type="checkbox" id="stripFable" role="switch"></label>
+    <label class="switch"><span id="toggleCtxLabel"></span><input type="checkbox" id="stripCtx" role="switch"></label>
+  </section>
+
+  <footer>
+    <span id="updated"></span>
+    <details>
+      <summary id="settingsLabel"></summary>
+      <div class="org">
+        <input id="orgId" placeholder="" spellcheck="false">
+        <button id="saveOrg"></button>
+      </div>
+      <div class="org" style="margin-top:8px">
+        <input id="ctxWindow" type="number" min="1000" step="1000" placeholder="200000">
+        <button id="saveWindow"></button>
+      </div>
+      <details>
+        <summary id="rawLabel"></summary>
+        <pre id="raw"></pre>
+      </details>
+    </details>
+  </footer>
+  <script src="i18n.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>
