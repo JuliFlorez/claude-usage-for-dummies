@@ -1,0 +1,10 @@
+{
+  "extName": {
+    "message": "Claude Usage for Dummies",
+    "description": "Nombre de la extensión (no se traduce)."
+  },
+  "extDescription": {
+    "message": "Vos limites d'utilisation de claude.ai en un coup d'œil : dans l'icône de la barre, un panneau latéral et sous le chat.",
+    "description": "Descripción corta para Chrome y la Chrome Web Store (máx. 132 caracteres)."
+  }
+}
