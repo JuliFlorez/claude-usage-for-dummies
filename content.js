@@ -40,11 +40,13 @@ function safe(fn) {
   }
 }
 let usage = null;
-let ctx = null;            // { convId, total, parts, messages, unknownFiles, model }
-let ctxWindow = 200000;    // SUPOSICIÓN: 200k por defecto; se cambia en Ajustes del panel
+let ctx = null;            // { convId, total, parts, messages, replies, perExchange, lastRequestAt, … }
+let ctxWindowSetting = null; // ventana elegida a mano en Ajustes; si no, la del modelo del chat
+let cacheTtl = 5;          // minutos; SUPOSICIÓN: igual que la API, se cambia en Ajustes
+let sessionRate = null;    // { pctPerToken, samples } medido por background.js
 let ctxTimer = null, ctxLastFetch = 0, ctxLastConv = null;
 // Interruptores del panel lateral: qué se muestra en la franja del chat.
-let show = { usage: true, ctx: true, fable: true };
+let show = { usage: true, ctx: true, fable: true, cache: true };
 
 // --- Tema e idioma de claude.ai ---------------------------------------------
 // Comprobado en claude.ai (oct 2026): <html data-mode="dark" lang="es-419">.
@@ -156,20 +158,68 @@ function render(host) {
         </span>`;
       }).join("")
     : `<span class="item">${tr.loading}</span>`;
-  host.shadowRoot.innerHTML = `<style>${STYLE}</style><div class="strip">${body}${ctxItem(tr)}</div>`;
+  host.shadowRoot.innerHTML = `<style>${STYLE}</style><div class="strip">${body}${ctxItem(tr)}${cacheItem(tr)}</div>`;
 }
 
-// Ítem "Contexto ~48k / 200k" al final de la franja, sólo dentro de un chat.
+const attr = (s) => String(s).replace(/"/g, "&quot;");
+const ctxHere = () => ctx && ctx.convId === convId();
+
+// Ítem "Contexto ~48k / 200k · ≈14 msj" al final de la franja, sólo dentro de un chat.
 function ctxItem(tr) {
-  if (!show.ctx || !ctx || ctx.convId !== convId()) return "";
+  if (!show.ctx || !ctxHere()) return "";
+  const lang = pagePrefs.lang;
+  const ctxWindow = ctxWindowSetting || ctx.window || 1e6;
   const pct = (ctx.total / ctxWindow) * 100;
   const p = Math.max(0, Math.min(100, pct));
-  const tip = `${tr.ctxOf(fmtTokens(ctx.total, pagePrefs.lang), fmtTokens(ctxWindow, pagePrefs.lang))}. ${tr.ctxNote} ${tr.ctxHidden}`;
-  return `<span class="item" title="${tip.replace(/"/g, "&quot;")}">
+  const left = messagesLeft({
+    total: ctx.total, perExchange: ctx.perExchange, window: ctxWindow,
+    sessionPct: usage?.five_hour?.utilization, rate: sessionRate?.pctPerToken,
+  });
+  const msgs = left
+    ? `<span class="reset" title="${attr(`${tr.msgsLeft(left.n)} ${tr.msgsUnit(left.n)}, ${left.by === "session" ? tr.bySession : tr.byCtx}`)}">· ${tr.msgsShort(left.n)}</span>`
+    : "";
+  const tip = `${tr.ctxOf(fmtTokens(ctx.total, lang), fmtTokens(ctxWindow, lang))}. ${tr.ctxNote} ${tr.ctxHidden}`;
+  return `<span class="item" title="${attr(tip)}">
     ${tr.ctxShort}
     <span class="bar"><span class="fill" style="width:${p}%;background:${color(pct)}"></span></span>
-    <strong style="font-weight:600">~${fmtTokens(ctx.total, pagePrefs.lang)}</strong><span class="reset">/ ${fmtTokens(ctxWindow, pagePrefs.lang)}</span>
+    <strong style="font-weight:600">~${fmtTokens(ctx.total, lang)}</strong><span class="reset">/ ${fmtTokens(ctxWindow, lang)}</span>${msgs}
   </span>`;
+}
+
+const ttlLabel = () => (cacheTtl >= 60 ? `${cacheTtl / 60} h` : `${cacheTtl} min`);
+
+// Ítem "Caché 3:42 · ahorrás ~43k": cuenta regresiva hasta que vence la caché.
+// La barra se vacía con el tiempo; tickCache() la actualiza cada segundo.
+function cacheItem(tr) {
+  if (!show.cache || !ctxHere() || !ctx.lastRequestAt || !ctx.total) return "";
+  const left = cacheLeftMs(ctx.lastRequestAt, cacheTtl);
+  const saved = fmtTokens(ctx.total * (1 - ctx.cacheRead), pagePrefs.lang);
+  const full = fmtTokens(ctx.total, pagePrefs.lang);
+  if (left <= 0) {
+    return `<span class="item" style="opacity:.6" title="${attr(`${tr.cacheCold(full)} ${tr.cacheNote(ttlLabel())}`)}">
+      ${tr.cacheShort} <span class="reset">${tr.cacheExpired}</span>
+    </span>`;
+  }
+  const p = Math.min(100, (left / (cacheTtl * 60e3)) * 100);
+  const tip = `${tr.cacheWarm(saved, Math.round((1 - ctx.cacheRead) * 100))} ${tr.cacheNote(ttlLabel())}`;
+  return `<span class="item" title="${attr(tip)}">
+    ${tr.cacheShort}
+    <span class="bar"><span class="fill cbar" style="width:${p}%;background:currentColor"></span></span>
+    <strong class="cd" style="font-weight:600">${fmtClock(left)}</strong><span class="reset">· ${tr.cacheSave(saved)}</span>
+  </span>`;
+}
+
+// Actualiza sólo el reloj y la barra de la caché (sin redibujar la franja,
+// así no se corta el tooltip). Al vencer, redibuja para mostrar "vencida".
+function tickCache() {
+  const root = document.getElementById(HOST_ID)?.shadowRoot;
+  const cd = root?.querySelector(".cd");
+  if (!cd || !ctxHere()) return;
+  const left = cacheLeftMs(ctx.lastRequestAt, cacheTtl);
+  if (left <= 0) { rerender(); return; }
+  cd.textContent = fmtClock(left);
+  const bar = root.querySelector(".cbar");
+  if (bar) bar.style.width = `${Math.min(100, (left / (cacheTtl * 60e3)) * 100)}%`;
 }
 
 
@@ -180,7 +230,7 @@ function inPlace(host, composer, mode) {
 }
 
 function place() {
-  if (!show.usage && !show.ctx) { document.getElementById(HOST_ID)?.remove(); return; }
+  if (!show.usage && !show.ctx && !show.cache) { document.getElementById(HOST_ID)?.remove(); return; }
   const composer = findComposer();
   if (!composer) return;
   let host = document.getElementById(HOST_ID);
@@ -260,7 +310,13 @@ async function updateCtx() {
     if (!r.ok) return;
     const conv = await r.json();
     if (convId() !== id) return; // el usuario ya se fue a otro chat
+    const prev = ctx;
     ctx = { convId: id, name: conv.name || "", ...estimateContext(conv) };
+    // Llegó una respuesta nueva mientras mirábamos este chat: avisa a
+    // background.js para que mida cuánto subió el uso de la sesión.
+    if (prev?.convId === id && ctx.replies > prev.replies) {
+      safe(() => chrome.runtime.sendMessage({ type: "turn", tokens: ctx.total * (ctx.replies - prev.replies) }));
+    }
     rerender();
     publishCtx();
   } catch (e) {
@@ -277,26 +333,32 @@ function onVisible() { if (document.visibilityState === "visible") publishCtx();
 document.addEventListener("visibilitychange", onVisible);
 cleanups.push(() => document.removeEventListener("visibilitychange", onVisible));
 
-chrome.storage.local.get(["usage", "ctxWindow", "stripUsage", "stripCtx", "stripFable"]).then((s) => {
-  show = { usage: s.stripUsage !== false, ctx: s.stripCtx !== false, fable: s.stripFable !== false };
+chrome.storage.local.get(["usage", "ctxWindow", "cacheTtl", "sessionRate", "stripUsage", "stripCtx", "stripFable", "stripCache"]).then((s) => {
+  show = { usage: s.stripUsage !== false, ctx: s.stripCtx !== false, fable: s.stripFable !== false, cache: s.stripCache !== false };
   usage = s.usage || null;
-  if (s.ctxWindow) ctxWindow = s.ctxWindow;
+  sessionRate = s.sessionRate || null;
+  ctxWindowSetting = s.ctxWindow || null;
+  if (s.cacheTtl) cacheTtl = s.cacheTtl;
   place(); rerender(); updateCtx();
 });
 function onStorageChange(changes) {
   if (changes.usage) { usage = changes.usage.newValue; rerender(); }
-  if (changes.ctxWindow) { ctxWindow = changes.ctxWindow.newValue || 200000; rerender(); }
-  if (changes.stripUsage || changes.stripCtx || changes.stripFable) {
+  if (changes.ctxWindow) { ctxWindowSetting = changes.ctxWindow.newValue || null; rerender(); }
+  if (changes.cacheTtl) { cacheTtl = changes.cacheTtl.newValue || 5; rerender(); }
+  if (changes.sessionRate) { sessionRate = changes.sessionRate.newValue || null; rerender(); }
+  if (changes.stripUsage || changes.stripCtx || changes.stripFable || changes.stripCache) {
     if (changes.stripUsage) show.usage = changes.stripUsage.newValue !== false;
     if (changes.stripFable) show.fable = changes.stripFable.newValue !== false;
     if (changes.stripCtx) show.ctx = changes.stripCtx.newValue !== false;
+    if (changes.stripCache) show.cache = changes.stripCache.newValue !== false;
     place(); rerender();
   }
 }
 chrome.storage.onChanged.addListener(onStorageChange);
 cleanups.push(() => chrome.storage.onChanged.removeListener(onStorageChange));
 const ticker = setInterval(() => { if (alive()) rerender(); }, 30e3); // actualiza las cuentas regresivas
-cleanups.push(() => clearInterval(ticker));
+const clock = setInterval(() => { if (alive()) tickCache(); }, 1000); // reloj de la caché
+cleanups.push(() => clearInterval(ticker), () => clearInterval(clock));
 
 // Pide datos frescos al entrar a claude.ai.
 safe(() => chrome.runtime.sendMessage({ type: "refresh" }));

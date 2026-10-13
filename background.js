@@ -40,7 +40,53 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     refresh().then(() => sendResponse({ ok: true }));
     return true; // respuesta asíncrona
   }
+  if (msg?.type === "turn") {
+    onTurn(msg).then(() => sendResponse({ ok: true }));
+    return true;
+  }
 });
+
+// --- Ritmo de la sesión -----------------------------------------------------
+// Para estimar cuántos mensajes te quedan en la sesión de 5 h, medimos cuánto
+// sube el % después de cada mensaje y lo dividimos por los tokens que mandó
+// (el contexto entero: cada mensaje vuelve a mandar todo el chat).
+// SUPOSICIÓN: el % de la sesión crece proporcional a los tokens mandados.
+// Si usás Claude en otro lado al mismo tiempo, eso también entra en la cuenta.
+const MAX_SAMPLES = 12;
+let turnTimer = null;
+
+async function onTurn({ tokens }) {
+  const { pending = { turns: 0, tokens: 0 } } = await chrome.storage.local.get("pending");
+  pending.turns++;
+  pending.tokens += Math.max(0, tokens || 0);
+  await chrome.storage.local.set({ pending });
+  // Espera unos segundos a que claude.ai actualice el uso y lo mide.
+  clearTimeout(turnTimer);
+  turnTimer = setTimeout(refresh, 15e3);
+}
+
+async function sampleRate(usage) {
+  const fh = usage?.five_hour;
+  if (typeof fh?.utilization !== "number") return;
+  const now = { pct: fh.utilization, resetsAt: fh.resets_at || null, at: Date.now() };
+  const { snap, pending = { turns: 0, tokens: 0 }, samples = [] } =
+    await chrome.storage.local.get(["snap", "pending", "samples"]);
+  const sameWindow = snap && snap.resetsAt === now.resetsAt && now.pct >= snap.pct;
+  const d = sameWindow ? now.pct - snap.pct : 0;
+
+  if (sameWindow && pending.turns > 0 && pending.tokens > 0) {
+    samples.push({ d, tokens: pending.tokens, at: now.at });
+  } else if (sameWindow && d > 0 && samples.length && now.at - samples[samples.length - 1].at < 5 * 60e3) {
+    // El uso a veces se actualiza tarde: se lo sumamos al último mensaje medido.
+    samples[samples.length - 1].d += d;
+  }
+  const kept = samples.slice(-MAX_SAMPLES);
+  const tok = kept.reduce((a, s) => a + s.tokens, 0);
+  const pct = kept.reduce((a, s) => a + s.d, 0);
+  // Con menos de 3 mensajes medidos todavía no hay ritmo confiable.
+  const sessionRate = kept.length >= 3 && tok > 0 && pct > 0 ? { pctPerToken: pct / tok, samples: kept.length } : null;
+  await chrome.storage.local.set({ snap: now, pending: { turns: 0, tokens: 0 }, samples: kept, sessionRate });
+}
 
 // 1) orgId cargado a mano en el panel
 // 2) cookie "lastActiveOrg" (SUPOSICIÓN: no verifiqué que siempre exista)
@@ -88,6 +134,7 @@ async function refresh() {
     const usage = await getJSON(`${BASE}/api/organizations/${orgId}/usage`);
     await chrome.storage.local.set({ usage, updatedAt: Date.now(), error: null });
     updateBadge(usage);
+    await sampleRate(usage).catch(console.error);
   } catch (e) {
     await chrome.storage.local.set({ error: e.message || String(e), checkedAt: Date.now() });
     drawIcon(null);

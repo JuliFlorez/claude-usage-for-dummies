@@ -64,6 +64,15 @@
   .parts { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; margin-top: 6px; }
   .parts span:nth-child(even) { text-align: right; color: var(--ink); }
   .hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .card { margin-top: 22px; }
+  .limit.cold .pct { color: var(--muted); }
+  .limit .pct .unit { font-size: 13px; color: var(--muted); margin-left: 6px; letter-spacing: 0; }
+  .bar .fill.drain { transition: width 1s linear; }
+  select {
+    font: inherit; font-size: 12px; color: var(--ink); background: var(--bg);
+    border: 1px solid var(--track); border-radius: 6px; padding: 6px 8px; flex: 1;
+  }
+  .setting { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
   .toggles { display: flex; flex-direction: column; gap: 10px; }
   .toggles .title { font-size: 12px; color: var(--muted); }
   .switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--ink); font-size: 13px; cursor: pointer; }
@@ -105,6 +114,7 @@
     <label class="switch"><span id="toggleUsageLabel"></span><input type="checkbox" id="stripUsage" role="switch"></label>
     <label class="switch"><span id="toggleFableLabel"></span><input type="checkbox" id="stripFable" role="switch"></label>
     <label class="switch"><span id="toggleCtxLabel"></span><input type="checkbox" id="stripCtx" role="switch"></label>
+    <label class="switch"><span id="toggleCacheLabel"></span><input type="checkbox" id="stripCache" role="switch"></label>
   </section>
 
   <footer>
@@ -116,9 +126,12 @@
         <button id="saveOrg"></button>
       </div>
       <div class="org" style="margin-top:8px">
-        <input id="ctxWindow" type="number" min="1000" step="1000" placeholder="200000">
+        <input id="ctxWindow" type="number" min="1000" step="1000" placeholder="">
         <button id="saveWindow"></button>
       </div>
+      <label class="setting"><span id="cacheTtlLabel"></span>
+        <select id="cacheTtl"><option value="5" id="ttl5"></option><option value="60" id="ttl60"></option></select>
+      </label>
       <details>
         <summary id="rawLabel"></summary>
         <pre id="raw"></pre>
@@ -126,6 +139,7 @@
     </details>
   </footer>
   <script src="i18n.js"></script>
+  <script src="context.js"></script>
   <script src="sidepanel.js"></script>
 </body>
 </html>

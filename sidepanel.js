@@ -25,11 +25,18 @@ function applyPrefs() {
   $("rawLabel").textContent = t.raw;
   $("ctxWindow").title = t.ctxWindow;
   $("ctxWindow").setAttribute("aria-label", t.ctxWindow);
+  $("ctxWindow").placeholder = t.ctxWindowAuto;
   $("saveWindow").textContent = t.save;
   $("inChatLabel").textContent = t.inChat;
   $("toggleUsageLabel").textContent = t.toggleUsage;
   $("toggleCtxLabel").textContent = t.toggleCtx;
   $("toggleFableLabel").textContent = t.toggleFable;
+  $("toggleCacheLabel").textContent = t.toggleCache;
+  $("cacheTtlLabel").textContent = t.cacheTtl;
+  $("ttl5").textContent = t.ttl5;
+  $("ttl60").textContent = t.ttl60;
+  $("cacheTtl").value = String(state.cacheTtl || 5);
+  $("stripCache").checked = state.stripCache !== false;
   $("stripFable").checked = state.stripFable !== false;
   $("stripFable").disabled = state.stripUsage === false; // sin límites en el chat, no aplica
   $("stripUsage").checked = state.stripUsage !== false;
@@ -42,7 +49,7 @@ function renderChat() {
   const c = state.chatContext;
   const t = tr();
   const lang = state.pagePrefs?.lang || navigator.language;
-  const win = state.ctxWindow || 200000;
+  const win = state.ctxWindow || c?.window || 1e6; // a mano en Ajustes, o la del modelo
   if (!c) {
     root.innerHTML = `<div class="notice">${t.ctxNone}</div>`;
     return;
@@ -69,9 +76,73 @@ function renderChat() {
       <span>${t.ctxTools}</span><span>~${fmtTokens(p.tools || 0, lang)}</span>
       <span>${t.ctxFiles}</span><span>~${fmtTokens(p.files || 0, lang)}</span>
     </div>
-    <div class="hint">${t.ctxMsgs(c.messages)}${c.unknownFiles ? ` · ${t.ctxUnknownFiles(c.unknownFiles)}` : ""}</div>
+    <div class="hint">${t.ctxMsgs(c.messages)}${c.unknownFiles ? ` · ${t.ctxUnknownFiles(c.unknownFiles)}` : ""}${c.model ? ` · ${esc(c.model)}` : ""}</div>
     <div class="hint">${t.ctxNote}</div>
-    <div class="hint">${t.ctxHidden}</div>`;
+    <div class="hint">${t.ctxHidden}</div>
+    ${msgsCard(c, win, t, lang)}
+    ${cacheCard(c, t, lang)}`;
+}
+
+// Tarjeta "Mensajes que quedan": el menor entre llenar el contexto y llegar
+// al límite de la sesión de 5 h (si ya se midió tu ritmo).
+function msgsCard(c, win, t, lang) {
+  const left = messagesLeft({
+    total: c.total, perExchange: c.perExchange, window: win,
+    sessionPct: state.usage?.five_hour?.utilization, rate: state.sessionRate?.pctPerToken,
+  });
+  if (!left) {
+    return `<div class="limit card"><div class="row"><span class="name">${t.msgsTitle}</span></div>
+      <div class="hint">${t.msgsNone}</div></div>`;
+  }
+  const cls = left.n <= 3 ? " hot" : left.n <= 10 ? " warn" : "";
+  return `
+    <div class="limit card${cls}">
+      <div class="row">
+        <span class="name">${t.msgsTitle}</span>
+        <span class="pct">${t.msgsLeft(left.n)}<span class="unit">${t.msgsUnit(left.n)}</span></span>
+      </div>
+      <div class="meta" style="margin-top:8px"><span>${left.by === "session" ? t.bySession : t.byCtx}</span></div>
+      <div class="hint">${t.perExchange(fmtTokens(c.perExchange, lang))}</div>
+      ${state.sessionRate ? "" : `<div class="hint">${t.rateLearning}</div>`}
+    </div>`;
+}
+
+const ttl = () => state.cacheTtl || 5;
+const ttlLabel = () => (ttl() >= 60 ? `${ttl() / 60} h` : `${ttl()} min`);
+
+// Tarjeta "Caché": cuenta regresiva y cuánto ahorrás si mandás a tiempo.
+// tickCache() mueve el reloj cada segundo sin redibujar todo.
+function cacheCard(c, t, lang) {
+  if (!c.lastRequestAt || !c.total) return "";
+  const left = cacheLeftMs(c.lastRequestAt, ttl());
+  const full = fmtTokens(c.total, lang);
+  const saved = fmtTokens(c.total * (1 - (c.cacheRead ?? 0.1)), lang);
+  const warm = left > 0;
+  const p = warm ? Math.min(100, (left / (ttl() * 60e3)) * 100) : 0;
+  return `
+    <div class="limit card${warm ? "" : " cold"}" id="cacheCard">
+      <div class="row">
+        <span class="name">${t.cacheTitle}</span>
+        <span class="pct" id="cacheClock">${warm ? fmtClock(left) : `<small>${t.cacheExpired}</small>`}</span>
+      </div>
+      <div class="bar"><div class="fill drain" id="cacheBar" style="width:${p}%"></div></div>
+      <div class="hint">${warm ? t.cacheWarm(saved, Math.round((1 - (c.cacheRead ?? 0.1)) * 100)) : t.cacheCold(full)}</div>
+      <div class="hint">${t.cacheNote(ttlLabel())}</div>
+    </div>`;
+}
+
+let wasWarm = null;
+function tickCache() {
+  const c = state.chatContext;
+  const clock = $("cacheClock");
+  if (!c || !clock) return;
+  const left = cacheLeftMs(c.lastRequestAt, ttl());
+  const warm = left > 0;
+  if (wasWarm !== null && warm !== wasWarm) { wasWarm = warm; render(); return; }
+  wasWarm = warm;
+  if (!warm) return;
+  clock.textContent = fmtClock(left);
+  $("cacheBar").style.width = `${Math.min(100, (left / (ttl() * 60e3)) * 100)}%`;
 }
 
 function prettify(key) {
@@ -161,7 +232,7 @@ function render() {
 }
 
 async function load() {
-  state = await chrome.storage.local.get(["usage", "updatedAt", "error", "orgId", "pagePrefs", "chatContext", "ctxWindow", "stripUsage", "stripCtx", "stripFable"]);
+  state = await chrome.storage.local.get(["usage", "updatedAt", "error", "orgId", "pagePrefs", "chatContext", "ctxWindow", "cacheTtl", "sessionRate", "stripUsage", "stripCtx", "stripFable", "stripCache"]);
   render();
 }
 
@@ -186,10 +257,13 @@ $("saveWindow").addEventListener("click", async () => {
 });
 
 // Interruptores: qué se muestra debajo del cuadro de chat de claude.ai.
-for (const id of ["stripUsage", "stripFable", "stripCtx"]) {
+for (const id of ["stripUsage", "stripFable", "stripCtx", "stripCache"]) {
   $(id).addEventListener("change", (e) => chrome.storage.local.set({ [id]: e.target.checked }));
 }
 
+$("cacheTtl").addEventListener("change", (e) => chrome.storage.local.set({ cacheTtl: Number(e.target.value) || 5 }));
+
 chrome.storage.onChanged.addListener(load);
 setInterval(render, 30e3); // refresca cuentas regresivas y "hace X min"
+setInterval(tickCache, 1000); // reloj de la caché
 load();
