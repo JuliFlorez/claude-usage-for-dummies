@@ -11,3 +11,6 @@ desktop.ini
 *.zip
 *.crx
 *.pem
+
+# Capturas para la Chrome Web Store (solo locales)
+store/
