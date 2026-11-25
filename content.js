@@ -1,7 +1,8 @@
-// Muestra una franja con los límites debajo del cuadro de chat de claude.ai.
-// SUPOSICIÓN: no conozco la estructura exacta del HTML de claude.ai y puede
-// cambiar sin aviso. findComposer() busca el área editable y sube hasta su
-// contenedor; si un día deja de aparecer la franja, el problema está ahí.
+// Muestra una franja con los límites arriba del cuadro de chat de claude.ai.
+// Comprobado (nov 2026): el editor es div[data-testid="chat-input"] dentro de un
+// <fieldset> que tiene el cuadro y, debajo, la fila del modelo. La franja va
+// como primer hijo de ese fieldset. Si un día deja de aparecer, el problema
+// está en findComposer().
 
 const HOST_ID = "cufd-strip";
 
@@ -42,7 +43,7 @@ function safe(fn) {
 let usage = null;
 let ctx = null;            // { convId, total, parts, messages, replies, perExchange, lastRequestAt, … }
 let ctxWindowSetting = null; // ventana elegida a mano en Ajustes; si no, la del modelo del chat
-let cacheTtl = 5;          // minutos; SUPOSICIÓN: igual que la API, se cambia en Ajustes
+let cacheTtl = 60;         // minutos; en claude.ai la caché dura 1 h. Se cambia en Ajustes
 let sessionRate = null;    // { pctPerToken, samples } medido por background.js
 let ctxTimer = null, ctxLastFetch = 0, ctxLastConv = null;
 // Interruptores del panel lateral: qué se muestra en la franja del chat.
@@ -89,7 +90,9 @@ syncPagePrefs();
 // puede haber otros campos editables (por ej. al editar un mensaje viejo) y el
 // primero del HTML no siempre es el cuadro de chat principal.
 function findComposer() {
-  const editors = [...document.querySelectorAll('div[contenteditable="true"]')]
+  const preferred = [...document.querySelectorAll('div[data-testid="chat-input"]')];
+  const pool = preferred.length ? preferred : [...document.querySelectorAll('div[contenteditable="true"]')];
+  const editors = pool
     .map((el) => ({ el, r: el.getBoundingClientRect() }))
     .filter(({ r }) => r.width > 0 && r.height > 0);
   if (!editors.length) return null;
@@ -98,24 +101,11 @@ function findComposer() {
   return editor.closest("fieldset") || editor.closest("form") || editor.parentElement?.parentElement?.parentElement || null;
 }
 
-// ¿Se ve de verdad la franja, o quedó recortada / fuera de pantalla?
-function isVisible(host) {
-  const r = host.getBoundingClientRect();
-  if (r.height === 0 || r.bottom > window.innerHeight || r.top < 0) return false;
-  const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-  return hit === host;
-}
-
-// Por cada cuadro de chat recordamos dónde terminó la franja ("after" o "inside")
-// para no hacerla saltar de lugar en cada cambio del DOM.
-const modeFor = new WeakMap();
-
 function extract(data) {
   const L = T(pagePrefs.lang).short;
-  return Object.entries(data || {})
-    .filter(([, v]) => v && typeof v === "object" && typeof v.utilization === "number")
-    .filter(([key]) => show.fable || key !== "iguana_necktie") // interruptor del panel
-    .map(([key, v]) => ({ key, label: L[key] || key.replace(/_/g, " "), pct: v.utilization, resetsAt: v.resets_at }));
+  return readLimits(data)
+    .filter((l) => show.fable || !l.fable) // interruptor del panel
+    .map((l) => ({ ...l, label: limitLabel(l, L, false) }));
 }
 
 function fmtLeft(iso) {
@@ -133,7 +123,7 @@ function color(pct) {
 
 const STYLE = `
   :host { all: initial; display: block; position: relative; z-index: 1; color: inherit; font: 12px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  .strip { display: flex; flex-wrap: wrap; gap: 6px 18px; justify-content: center; padding: 8px 4px 2px; opacity: .72; }
+  .strip { display: flex; flex-wrap: wrap; gap: 6px 18px; justify-content: center; padding: 2px 4px 8px; opacity: .72; }
   .strip:hover { opacity: 1; }
   .strip:empty { display: none; }
   .item { display: flex; align-items: center; gap: 6px; white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -173,7 +163,7 @@ function ctxItem(tr) {
   const p = Math.max(0, Math.min(100, pct));
   const left = messagesLeft({
     total: ctx.total, perExchange: ctx.perExchange, window: ctxWindow,
-    sessionPct: usage?.five_hour?.utilization, rate: sessionRate?.pctPerToken,
+    sessionPct: sessionLimit(usage)?.pct, rate: sessionRate?.pctPerToken,
   });
   const msgs = left
     ? `<span class="reset" title="${attr(`${tr.msgsLeft(left.n)} ${tr.msgsUnit(left.n)}, ${left.by === "session" ? tr.bySession : tr.byCtx}`)}">· ${tr.msgsShort(left.n)}</span>`
@@ -223,41 +213,22 @@ function tickCache() {
 }
 
 
-function inPlace(host, composer, mode) {
-  return mode === "inside"
-    ? host.parentElement === composer && composer.lastElementChild === host
-    : host.previousElementSibling === composer;
-}
-
+// La franja va adentro del contenedor del cuadro, como primer hijo: así queda
+// arriba del cuadro y se mueve con él (en un chat está pegado al fondo).
 function place() {
   if (!show.usage && !show.ctx && !show.cache) { document.getElementById(HOST_ID)?.remove(); return; }
   const composer = findComposer();
   if (!composer) return;
   let host = document.getElementById(HOST_ID);
-  const mode = modeFor.get(composer) || "after";
-  if (host && inPlace(host, composer, mode)) return; // ya está en su lugar
+  if (host && host.parentElement === composer && composer.firstElementChild === host) return; // ya está
 
   if (!host) {
     host = document.createElement("div");
     host.id = HOST_ID;
     host.attachShadow({ mode: "open" }); // aísla los estilos de los de claude.ai
   }
-  if (mode === "inside") composer.append(host);
-  else composer.after(host);
+  composer.prepend(host);
   render(host);
-
-  // Primera vez con este cuadro: si debajo no se ve (pasa cuando el chat está
-  // pegado al fondo de la pantalla), la metemos dentro del cuadro, al final.
-  if (!modeFor.has(composer)) {
-    modeFor.set(composer, "after");
-    setTimeout(() => {
-      if (!isVisible(host)) {
-        modeFor.set(composer, "inside");
-        composer.append(host);
-        console.debug("[Claude Usage for Dummies] franja movida dentro del cuadro de chat");
-      }
-    }, 300);
-  }
 }
 
 function rerender() {
@@ -344,7 +315,7 @@ chrome.storage.local.get(["usage", "ctxWindow", "cacheTtl", "sessionRate", "stri
 function onStorageChange(changes) {
   if (changes.usage) { usage = changes.usage.newValue; rerender(); }
   if (changes.ctxWindow) { ctxWindowSetting = changes.ctxWindow.newValue || null; rerender(); }
-  if (changes.cacheTtl) { cacheTtl = changes.cacheTtl.newValue || 5; rerender(); }
+  if (changes.cacheTtl) { cacheTtl = changes.cacheTtl.newValue || 60; rerender(); }
   if (changes.sessionRate) { sessionRate = changes.sessionRate.newValue || null; rerender(); }
   if (changes.stripUsage || changes.stripCtx || changes.stripFable || changes.stripCache) {
     if (changes.stripUsage) show.usage = changes.stripUsage.newValue !== false;

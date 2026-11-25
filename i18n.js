@@ -4,7 +4,7 @@
 
 const I18N = {
   es: {
-    inChat: "En el chat de Claude", toggleUsage: "Límites de uso", toggleFable: "Iguana necktie (Fable)", toggleCtx: "Contexto del chat",
+    inChat: "En el chat de Claude", toggleUsage: "Límites de uso", toggleFable: "Fable", toggleCtx: "Contexto del chat",
     ctxShort: "Contexto",
     ctxTitle: "Este chat",
     ctxOf: (a, b) => `~${a} de ${b} tokens`,
@@ -21,7 +21,7 @@ const I18N = {
     cacheExpired: "vencida",
     cacheWarm: (x, p) => `Si mandás el próximo mensaje antes de que llegue a cero, ~${x} tokens se leen de caché, ~${p} % más baratos.`,
     cacheCold: (x) => `Venció: el próximo mensaje vuelve a procesar ~${x} tokens a precio completo (y la caché arranca de nuevo).`,
-    cacheNote: (m) => `Suposición: claude.ai guarda la caché ${m} desde que empieza cada respuesta, como la API. Se cambia en Ajustes.`,
+    cacheNote: (m) => `claude.ai guarda la caché ${m} desde que empieza cada respuesta. Se cambia en Ajustes.`,
     cacheTtl: "Duración de la caché", ttl5: "5 minutos", ttl60: "1 hora",
     msgsShort: (n) => `≈${n} msj`,
     msgsTitle: "Mensajes que quedan",
@@ -32,8 +32,8 @@ const I18N = {
     perExchange: (x) => `Cada ida y vuelta suma ~${x} tokens (promedio de las últimas).`,
     rateLearning: "Cuando mida 3 mensajes tuyos también tiene en cuenta el límite de la sesión.",
     msgsNone: "Mandá un mensaje para calcularlo.",
-    short: { five_hour: "Sesión", seven_day: "Semana", seven_day_opus: "Opus", seven_day_sonnet: "Sonnet", iguana_necktie: "Iguana necktie (Fable)" },
-    long: { five_hour: "Sesión de 5 horas", seven_day: "Semanal", seven_day_opus: "Semanal de Opus", seven_day_sonnet: "Semanal de Sonnet", iguana_necktie: "Iguana necktie (Fable)" },
+    short: { five_hour: "Sesión", seven_day: "Semana", seven_day_opus: "Opus", seven_day_sonnet: "Sonnet", fable: "Fable" },
+    long: { five_hour: "Sesión de 5 horas", seven_day: "Semanal", seven_day_opus: "Semanal de Opus", seven_day_sonnet: "Semanal de Sonnet", fable: "Fable" },
     loading: "Cargando uso…",
     used: "usado",
     resetsIn: (t) => `se reinicia en ${t}`,
@@ -52,7 +52,7 @@ const I18N = {
     loadingTitle: "Cargando…",
     loadingBody: "Leyendo tu uso de claude.ai.",
     otherFormatTitle: "Llegaron datos con otro formato",
-    otherFormatBody: "Abrí Ajustes → Ver respuesta cruda y adaptá extractLimits() en sidepanel.js.",
+    otherFormatBody: "Abrí Ajustes → Ver respuesta cruda y adaptá readLimits() en i18n.js.",
     genericErrTitle: "No pude leer el uso",
     errPrefix: "Error:",
     errors: {
@@ -65,7 +65,7 @@ const I18N = {
     badgeSession: (p) => `sesión al ${p}%`,
   },
   en: {
-    inChat: "In the Claude chat", toggleUsage: "Usage limits", toggleFable: "Iguana necktie (Fable)", toggleCtx: "Chat context",
+    inChat: "In the Claude chat", toggleUsage: "Usage limits", toggleFable: "Fable", toggleCtx: "Chat context",
     ctxShort: "Context",
     ctxTitle: "This chat",
     ctxOf: (a, b) => `~${a} of ${b} tokens`,
@@ -82,7 +82,7 @@ const I18N = {
     cacheExpired: "expired",
     cacheWarm: (x, p) => `Send your next message before it hits zero and ~${x} tokens are read from cache, ~${p}% cheaper.`,
     cacheCold: (x) => `Expired: the next message reprocesses ~${x} tokens at full price (and the cache starts over).`,
-    cacheNote: (m) => `Assumption: claude.ai keeps the cache for ${m} from the start of each reply, like the API. Change it in Settings.`,
+    cacheNote: (m) => `claude.ai keeps the cache for ${m} from the start of each reply. Change it in Settings.`,
     cacheTtl: "Cache lifetime", ttl5: "5 minutes", ttl60: "1 hour",
     msgsShort: (n) => `≈${n} msgs`,
     msgsTitle: "Messages left",
@@ -93,8 +93,8 @@ const I18N = {
     perExchange: (x) => `Each back-and-forth adds ~${x} tokens (recent average).`,
     rateLearning: "After measuring 3 of your messages it also accounts for the session limit.",
     msgsNone: "Send a message to calculate it.",
-    short: { five_hour: "Session", seven_day: "Week", seven_day_opus: "Opus", seven_day_sonnet: "Sonnet", iguana_necktie: "Iguana necktie (Fable)" },
-    long: { five_hour: "5-hour session", seven_day: "Weekly", seven_day_opus: "Weekly Opus", seven_day_sonnet: "Weekly Sonnet", iguana_necktie: "Iguana necktie (Fable)" },
+    short: { five_hour: "Session", seven_day: "Week", seven_day_opus: "Opus", seven_day_sonnet: "Sonnet", fable: "Fable" },
+    long: { five_hour: "5-hour session", seven_day: "Weekly", seven_day_opus: "Weekly Opus", seven_day_sonnet: "Weekly Sonnet", fable: "Fable" },
     loading: "Loading usage…",
     used: "used",
     resetsIn: (t) => `resets in ${t}`,
@@ -113,7 +113,7 @@ const I18N = {
     loadingTitle: "Loading…",
     loadingBody: "Reading your claude.ai usage.",
     otherFormatTitle: "Data arrived in a different format",
-    otherFormatBody: "Open Settings → Show raw response and adapt extractLimits() in sidepanel.js.",
+    otherFormatBody: "Open Settings → Show raw response and adapt readLimits() in i18n.js.",
     genericErrTitle: "Couldn't read usage",
     errPrefix: "Error:",
     errors: {
@@ -126,7 +126,7 @@ const I18N = {
     badgeSession: (p) => `session at ${p}%`,
   },
   pt: {
-    inChat: "No chat do Claude", toggleUsage: "Limites de uso", toggleFable: "Iguana necktie (Fable)", toggleCtx: "Contexto do chat",
+    inChat: "No chat do Claude", toggleUsage: "Limites de uso", toggleFable: "Fable", toggleCtx: "Contexto do chat",
     ctxShort: "Contexto",
     ctxTitle: "Este chat",
     ctxOf: (a, b) => `~${a} de ${b} tokens`,
@@ -143,7 +143,7 @@ const I18N = {
     cacheExpired: "expirado",
     cacheWarm: (x, p) => `Envie a próxima mensagem antes de chegar a zero e ~${x} tokens são lidos do cache, ~${p}% mais baratos.`,
     cacheCold: (x) => `Expirou: a próxima mensagem reprocessa ~${x} tokens a preço cheio (e o cache recomeça).`,
-    cacheNote: (m) => `Suposição: o claude.ai mantém o cache por ${m} a partir do início de cada resposta, como a API. Mude em Ajustes.`,
+    cacheNote: (m) => `O claude.ai mantém o cache por ${m} a partir do início de cada resposta. Mude em Ajustes.`,
     cacheTtl: "Duração do cache", ttl5: "5 minutos", ttl60: "1 hora",
     msgsShort: (n) => `≈${n} msg`,
     msgsTitle: "Mensagens restantes",
@@ -154,8 +154,8 @@ const I18N = {
     perExchange: (x) => `Cada ida e volta soma ~${x} tokens (média recente).`,
     rateLearning: "Depois de medir 3 mensagens suas, também considera o limite da sessão.",
     msgsNone: "Envie uma mensagem para calcular.",
-    short: { five_hour: "Sessão", seven_day: "Semana", seven_day_opus: "Opus", seven_day_sonnet: "Sonnet", iguana_necktie: "Iguana necktie (Fable)" },
-    long: { five_hour: "Sessão de 5 horas", seven_day: "Semanal", seven_day_opus: "Semanal do Opus", seven_day_sonnet: "Semanal do Sonnet", iguana_necktie: "Iguana necktie (Fable)" },
+    short: { five_hour: "Sessão", seven_day: "Semana", seven_day_opus: "Opus", seven_day_sonnet: "Sonnet", fable: "Fable" },
+    long: { five_hour: "Sessão de 5 horas", seven_day: "Semanal", seven_day_opus: "Semanal do Opus", seven_day_sonnet: "Semanal do Sonnet", fable: "Fable" },
     loading: "Carregando uso…",
     used: "usado",
     resetsIn: (t) => `reinicia em ${t}`,
@@ -174,7 +174,7 @@ const I18N = {
     loadingTitle: "Carregando…",
     loadingBody: "Lendo seu uso do claude.ai.",
     otherFormatTitle: "Os dados chegaram em outro formato",
-    otherFormatBody: "Abra Ajustes → Ver resposta bruta e adapte extractLimits() em sidepanel.js.",
+    otherFormatBody: "Abra Ajustes → Ver resposta bruta e adapte readLimits() em i18n.js.",
     genericErrTitle: "Não consegui ler o uso",
     errPrefix: "Erro:",
     errors: {
@@ -187,7 +187,7 @@ const I18N = {
     badgeSession: (p) => `sessão em ${p}%`,
   },
   fr: {
-    inChat: "Dans le chat Claude", toggleUsage: "Limites d'utilisation", toggleFable: "Iguana necktie (Fable)", toggleCtx: "Contexte du chat",
+    inChat: "Dans le chat Claude", toggleUsage: "Limites d'utilisation", toggleFable: "Fable", toggleCtx: "Contexte du chat",
     ctxShort: "Contexte",
     ctxTitle: "Ce chat",
     ctxOf: (a, b) => `~${a} sur ${b} tokens`,
@@ -204,7 +204,7 @@ const I18N = {
     cacheExpired: "expiré",
     cacheWarm: (x, p) => `Envoyez le prochain message avant zéro et ~${x} tokens sont lus depuis le cache, ~${p} % moins cher.`,
     cacheCold: (x) => `Expiré : le prochain message retraite ~${x} tokens au prix plein (et le cache repart de zéro).`,
-    cacheNote: (m) => `Hypothèse : claude.ai garde le cache ${m} à partir du début de chaque réponse, comme l'API. Modifiable dans Réglages.`,
+    cacheNote: (m) => `claude.ai garde le cache ${m} à partir du début de chaque réponse. Modifiable dans Réglages.`,
     cacheTtl: "Durée du cache", ttl5: "5 minutes", ttl60: "1 heure",
     msgsShort: (n) => `≈${n} msg`,
     msgsTitle: "Messages restants",
@@ -215,8 +215,8 @@ const I18N = {
     perExchange: (x) => `Chaque aller-retour ajoute ~${x} tokens (moyenne récente).`,
     rateLearning: "Après 3 de vos messages mesurés, la limite de session est aussi prise en compte.",
     msgsNone: "Envoyez un message pour le calculer.",
-    short: { five_hour: "Session", seven_day: "Semaine", seven_day_opus: "Opus", seven_day_sonnet: "Sonnet", iguana_necktie: "Iguana necktie (Fable)" },
-    long: { five_hour: "Session de 5 heures", seven_day: "Hebdomadaire", seven_day_opus: "Hebdomadaire Opus", seven_day_sonnet: "Hebdomadaire Sonnet", iguana_necktie: "Iguana necktie (Fable)" },
+    short: { five_hour: "Session", seven_day: "Semaine", seven_day_opus: "Opus", seven_day_sonnet: "Sonnet", fable: "Fable" },
+    long: { five_hour: "Session de 5 heures", seven_day: "Hebdomadaire", seven_day_opus: "Hebdomadaire Opus", seven_day_sonnet: "Hebdomadaire Sonnet", fable: "Fable" },
     loading: "Chargement de l'utilisation…",
     used: "utilisé",
     resetsIn: (t) => `réinitialisation dans ${t}`,
@@ -235,7 +235,7 @@ const I18N = {
     loadingTitle: "Chargement…",
     loadingBody: "Lecture de votre utilisation de claude.ai.",
     otherFormatTitle: "Données dans un autre format",
-    otherFormatBody: "Ouvrez Réglages → Voir la réponse brute et adaptez extractLimits() dans sidepanel.js.",
+    otherFormatBody: "Ouvrez Réglages → Voir la réponse brute et adaptez readLimits() dans i18n.js.",
     genericErrTitle: "Impossible de lire l'utilisation",
     errPrefix: "Erreur :",
     errors: {
@@ -248,7 +248,7 @@ const I18N = {
     badgeSession: (p) => `session à ${p} %`,
   },
   de: {
-    inChat: "Im Claude-Chat", toggleUsage: "Nutzungslimits", toggleFable: "Iguana necktie (Fable)", toggleCtx: "Chat-Kontext",
+    inChat: "Im Claude-Chat", toggleUsage: "Nutzungslimits", toggleFable: "Fable", toggleCtx: "Chat-Kontext",
     ctxShort: "Kontext",
     ctxTitle: "Dieser Chat",
     ctxOf: (a, b) => `~${a} von ${b} Tokens`,
@@ -265,7 +265,7 @@ const I18N = {
     cacheExpired: "abgelaufen",
     cacheWarm: (x, p) => `Schick die nächste Nachricht, bevor null erreicht ist, dann werden ~${x} Tokens aus dem Cache gelesen, ~${p} % günstiger.`,
     cacheCold: (x) => `Abgelaufen: Die nächste Nachricht verarbeitet ~${x} Tokens zum vollen Preis (und der Cache beginnt neu).`,
-    cacheNote: (m) => `Annahme: claude.ai hält den Cache ${m} ab Beginn jeder Antwort, wie die API. In den Einstellungen änderbar.`,
+    cacheNote: (m) => `claude.ai hält den Cache ${m} ab Beginn jeder Antwort. In den Einstellungen änderbar.`,
     cacheTtl: "Cache-Dauer", ttl5: "5 Minuten", ttl60: "1 Stunde",
     msgsShort: (n) => `≈${n} Nachr.`,
     msgsTitle: "Verbleibende Nachrichten",
@@ -276,8 +276,8 @@ const I18N = {
     perExchange: (x) => `Jedes Hin und Her fügt ~${x} Tokens hinzu (letzter Durchschnitt).`,
     rateLearning: "Nach 3 gemessenen Nachrichten wird auch das Sitzungslimit berücksichtigt.",
     msgsNone: "Schick eine Nachricht, um es zu berechnen.",
-    short: { five_hour: "Sitzung", seven_day: "Woche", seven_day_opus: "Opus", seven_day_sonnet: "Sonnet", iguana_necktie: "Iguana necktie (Fable)" },
-    long: { five_hour: "5-Stunden-Sitzung", seven_day: "Wöchentlich", seven_day_opus: "Wöchentlich Opus", seven_day_sonnet: "Wöchentlich Sonnet", iguana_necktie: "Iguana necktie (Fable)" },
+    short: { five_hour: "Sitzung", seven_day: "Woche", seven_day_opus: "Opus", seven_day_sonnet: "Sonnet", fable: "Fable" },
+    long: { five_hour: "5-Stunden-Sitzung", seven_day: "Wöchentlich", seven_day_opus: "Wöchentlich Opus", seven_day_sonnet: "Wöchentlich Sonnet", fable: "Fable" },
     loading: "Nutzung wird geladen…",
     used: "genutzt",
     resetsIn: (t) => `zurückgesetzt in ${t}`,
@@ -296,7 +296,7 @@ const I18N = {
     loadingTitle: "Wird geladen…",
     loadingBody: "Deine claude.ai-Nutzung wird gelesen.",
     otherFormatTitle: "Daten in anderem Format erhalten",
-    otherFormatBody: "Öffne Einstellungen → Rohantwort anzeigen und passe extractLimits() in sidepanel.js an.",
+    otherFormatBody: "Öffne Einstellungen → Rohantwort anzeigen und passe readLimits() in i18n.js an.",
     genericErrTitle: "Nutzung konnte nicht gelesen werden",
     errPrefix: "Fehler:",
     errors: {
@@ -309,7 +309,7 @@ const I18N = {
     badgeSession: (p) => `Sitzung bei ${p} %`,
   },
   it: {
-    inChat: "Nella chat di Claude", toggleUsage: "Limiti di utilizzo", toggleFable: "Iguana necktie (Fable)", toggleCtx: "Contesto della chat",
+    inChat: "Nella chat di Claude", toggleUsage: "Limiti di utilizzo", toggleFable: "Fable", toggleCtx: "Contesto della chat",
     ctxShort: "Contesto",
     ctxTitle: "Questa chat",
     ctxOf: (a, b) => `~${a} di ${b} token`,
@@ -326,7 +326,7 @@ const I18N = {
     cacheExpired: "scaduta",
     cacheWarm: (x, p) => `Invia il prossimo messaggio prima dello zero e ~${x} token vengono letti dalla cache, ~${p}% più economici.`,
     cacheCold: (x) => `Scaduta: il prossimo messaggio rielabora ~${x} token a prezzo pieno (e la cache riparte).`,
-    cacheNote: (m) => `Ipotesi: claude.ai tiene la cache per ${m} dall'inizio di ogni risposta, come l'API. Si cambia in Impostazioni.`,
+    cacheNote: (m) => `claude.ai tiene la cache per ${m} dall'inizio di ogni risposta. Si cambia in Impostazioni.`,
     cacheTtl: "Durata della cache", ttl5: "5 minuti", ttl60: "1 ora",
     msgsShort: (n) => `≈${n} msg`,
     msgsTitle: "Messaggi rimasti",
@@ -337,8 +337,8 @@ const I18N = {
     perExchange: (x) => `Ogni scambio aggiunge ~${x} token (media recente).`,
     rateLearning: "Dopo aver misurato 3 tuoi messaggi considera anche il limite della sessione.",
     msgsNone: "Invia un messaggio per calcolarlo.",
-    short: { five_hour: "Sessione", seven_day: "Settimana", seven_day_opus: "Opus", seven_day_sonnet: "Sonnet", iguana_necktie: "Iguana necktie (Fable)" },
-    long: { five_hour: "Sessione di 5 ore", seven_day: "Settimanale", seven_day_opus: "Settimanale Opus", seven_day_sonnet: "Settimanale Sonnet", iguana_necktie: "Iguana necktie (Fable)" },
+    short: { five_hour: "Sessione", seven_day: "Settimana", seven_day_opus: "Opus", seven_day_sonnet: "Sonnet", fable: "Fable" },
+    long: { five_hour: "Sessione di 5 ore", seven_day: "Settimanale", seven_day_opus: "Settimanale Opus", seven_day_sonnet: "Settimanale Sonnet", fable: "Fable" },
     loading: "Caricamento utilizzo…",
     used: "usato",
     resetsIn: (t) => `si azzera tra ${t}`,
@@ -357,7 +357,7 @@ const I18N = {
     loadingTitle: "Caricamento…",
     loadingBody: "Lettura del tuo utilizzo di claude.ai.",
     otherFormatTitle: "Dati arrivati in un altro formato",
-    otherFormatBody: "Apri Impostazioni → Vedi risposta grezza e adatta extractLimits() in sidepanel.js.",
+    otherFormatBody: "Apri Impostazioni → Vedi risposta grezza e adatta readLimits() in i18n.js.",
     genericErrTitle: "Impossibile leggere l'utilizzo",
     errPrefix: "Errore:",
     errors: {
@@ -397,4 +397,78 @@ function fmtTokens(n, lang) {
   if (n >= 1e6) return (n / 1e6).toLocaleString(loc, { maximumFractionDigits: 1 }) + "M";
   if (n >= 1e3) return Math.round(n / 1e3).toLocaleString(loc) + "k";
   return String(Math.round(n));
+}
+
+// --- Límites de /usage ------------------------------------------------------
+// Comprobado (nov 2026): /usage trae un array nuevo "limits", que es lo que usa
+// la página de uso de claude.ai:
+//   { kind: "session" | "weekly_all" | …, group: "session" | "weekly",
+//     percent, severity, resets_at, scope, is_active }
+// Las claves viejas (five_hour, seven_day) siguen, pero las de modelos
+// (iguana_necktie = Fable, seven_day_opus, …) ahora vienen en null.
+//
+// Comprobado en el código de claude.ai (nov 2026): los límites por modelo o
+// por producto traen scope = { model: { display_name: "Fable" } } o
+// { surface: { display_name: "…" } }. La página de uso los nombra así:
+//   session → "5-hour limit", weekly_all → "Weekly · all models",
+//   otro → display_name del modelo (o del surface), con "Weekly · " delante
+//   si group es "weekly". Para saber si es de un modelo, mira si el
+//   display_name en minúsculas contiene el nombre (por ej. "fable").
+const KIND_KEY = { session: "five_hour", weekly_all: "seven_day" };
+
+function scopeName(scope) {
+  if (!scope || typeof scope !== "object") return typeof scope === "string" ? scope : "";
+  const s = scope.model?.display_name ?? scope.surface?.display_name;
+  return typeof s === "string" ? s.trim() : "";
+}
+
+const capital = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+// Devuelve [{ key, group, pct, resetsAt, fable, scope }] sin repetidos.
+// key: five_hour / seven_day para los generales, "kind:modelo" para el resto.
+function readLimits(usage) {
+  const out = [];
+  const seen = new Set();
+  const add = (item) => { if (!seen.has(item.key)) { seen.add(item.key); out.push(item); } };
+
+  for (const l of Array.isArray(usage?.limits) ? usage.limits : []) {
+    if (!l || typeof l.percent !== "number") continue;
+    const scope = scopeName(l.scope);
+    const model = String(l.scope?.model?.display_name || "").toLowerCase();
+    const key = !scope && KIND_KEY[l.kind] ? KIND_KEY[l.kind] : `${l.kind}${scope ? `:${scope.toLowerCase()}` : ""}`;
+    add({
+      key, scope,
+      group: l.group || (l.kind === "session" ? "session" : "weekly"),
+      pct: l.percent, resetsAt: l.resets_at,
+      fable: model.includes("fable"),
+    });
+  }
+
+  // Formato viejo: cualquier clave con "utilization" numérico. Se salta si el
+  // array nuevo ya trajo ese mismo límite (por ej. seven_day_opus y scope Opus).
+  const scopes = out.map((o) => o.scope.toLowerCase()).filter(Boolean);
+  for (const [k, v] of Object.entries(usage || {})) {
+    if (!v || typeof v !== "object" || typeof v.utilization !== "number") continue;
+    const fable = k === "iguana_necktie";
+    const model = fable ? "fable" : k.replace(/^seven_day_|^five_hour_/, "");
+    if (model !== k && scopes.some((s) => s.includes(model))) continue;
+    add({ key: fable ? "fable" : k, group: k.startsWith("five_hour") ? "session" : "weekly", pct: v.utilization, resetsAt: v.resets_at, fable, scope: "" });
+  }
+  return out;
+}
+
+// Nombre para mostrar. Con scope, como claude.ai: "Fable" en la franja y
+// "Semanal · Fable" en el panel. Sin scope, del diccionario.
+function limitLabel(item, dict, long) {
+  if (item.scope) {
+    const base = dict[item.group === "session" ? "five_hour" : "seven_day"];
+    return long && base ? `${base} · ${item.scope}` : item.scope;
+  }
+  return dict[item.key] || capital(item.key.replace(/[_:]/g, " "));
+}
+
+// La sesión de 5 h: { pct, resetsAt } o null.
+function sessionLimit(usage) {
+  const s = readLimits(usage).find((l) => l.key === "five_hour");
+  return s ? { pct: s.pct, resetsAt: s.resetsAt || null } : null;
 }

@@ -1,6 +1,6 @@
 # Claude Usage for Dummies
 
-A Chrome extension that shows your **claude.ai usage limits at a glance**: in the toolbar icon, in a side panel, and in a thin strip right below the chat box.
+A Chrome extension that shows your **claude.ai usage limits at a glance**: in the toolbar icon, in a side panel, and in a thin strip right above the chat box.
 
 *[Español más abajo ↓](#español)*
 
@@ -8,7 +8,7 @@ A Chrome extension that shows your **claude.ai usage limits at a glance**: in th
 
 - **Toolbar icon as a gauge** – a ring that fills up with your 5-hour session usage (turns red at ≥ 85 %). Hover it to see the exact percentage.
 - **Side panel** – click the icon to open it. Shows every limit claude.ai reports (5-hour session, weekly, weekly Opus / Sonnet, Fable…), how much is left, when each one resets, and a "pace" marker showing how much of the window has already elapsed.
-- **Strip under the chat** – the same limits, small and unobtrusive, right below the claude.ai message box.
+- **Strip above the chat** – the same limits, small and unobtrusive, right above the claude.ai message box.
 - **Chat context estimate** – roughly how many tokens the open chat is carrying (your messages, replies, tools, files), so you can see why long chats burn through the limit faster. Adjusted to the chat's model (newer models use a tokenizer that counts ~30 % more tokens) and to each image's size. The context window is picked automatically per model (1M, 500K or 200K, per the claude.ai help center); you can override it in Settings.
 - **Cache countdown** – how long the prompt cache stays warm after Claude's last request, and how many tokens you save if you send your next message before it expires.
 - **Messages left** – about how many more messages fit in the chat, until the context fills up or (once it has measured your pace) until you hit the 5-hour session limit, whichever comes first.
@@ -43,7 +43,7 @@ Requests go **only to claude.ai**, using your existing browser session. Nothing 
 |---|---|
 | `manifest.json` | Extension manifest (MV3) |
 | `background.js` | Service worker: fetches usage every 5 min, draws the toolbar ring |
-| `content.js` | Runs on claude.ai: the strip under the chat, theme/language detection |
+| `content.js` | Runs on claude.ai: the strip above the chat, theme/language detection |
 | `context.js` | Estimates the open chat's context size |
 | `sidepanel.html` / `sidepanel.js` | The side panel UI |
 | `i18n.js` | Translations |
@@ -53,9 +53,9 @@ Requests go **only to claude.ai**, using your existing browser session. Nothing 
 
 - These are **unofficial, undocumented** claude.ai endpoints. They can change at any time and break the extension.
 - The context number is an **estimate** (rules per word/number/symbol, scaled per model). It doesn't include the system prompt, memory, or anything else claude.ai adds behind the scenes.
-- The cache countdown **assumes** claude.ai caches like the API does: 5 minutes from the start of each request (1 hour is selectable in Settings).
+- The cache countdown uses claude.ai's 1-hour cache, counted from the start of each request (5 minutes is selectable in Settings).
 - The session-limit part of "messages left" assumes usage grows in proportion to the tokens sent. Using Claude elsewhere at the same time (another tab, Claude Code) counts too.
-- If the strip under the chat disappears after a claude.ai redesign, the culprit is `findComposer()` in `content.js`.
+- If the strip above the chat disappears after a claude.ai redesign, the culprit is `findComposer()` in `content.js`.
 - If the org can't be detected automatically, paste your organization ID in the side panel under **Settings**.
 
 Not affiliated with or endorsed by Anthropic.
@@ -64,13 +64,13 @@ Not affiliated with or endorsed by Anthropic.
 
 ## Español
 
-Extensión de Chrome que te muestra **tus límites de uso de claude.ai de un vistazo**: en el ícono de la barra, en un panel lateral y en una franjita justo debajo del chat.
+Extensión de Chrome que te muestra **tus límites de uso de claude.ai de un vistazo**: en el ícono de la barra, en un panel lateral y en una franjita justo arriba del chat.
 
 ### Qué hace
 
 - **Ícono como medidor**: un anillo que se llena según el uso de la sesión de 5 horas (se pone rojo a partir del 85 %).
 - **Panel lateral**: tocás el ícono y se abre. Muestra todos los límites (sesión de 5 h, semanal, Opus, Sonnet, Fable…), cuánto te queda, cuándo se reinicia cada uno y una marca de "ritmo" con cuánto de la ventana ya pasó.
-- **Franja debajo del chat**: los mismos límites, chiquitos, abajo del cuadro de mensaje.
+- **Franja arriba del chat**: los mismos límites, chiquitos, arriba del cuadro de mensaje.
 - **Contexto del chat**: cuántos tokens (aprox.) lleva el chat abierto y de dónde vienen, ajustado al modelo del chat y al tamaño de cada imagen. La ventana de contexto se elige sola según el modelo (1M, 500K o 200K, según la ayuda de claude.ai).
 - **Contador de caché**: cuánto le queda a la caché y cuántos tokens te ahorrás si mandás el próximo mensaje antes de que venza.
 - **Mensajes que quedan**: cuántos mensajes más entran, hasta llenar el contexto o (cuando ya midió tu ritmo) hasta el límite de la sesión de 5 h.
@@ -88,7 +88,7 @@ Extensión de Chrome que te muestra **tus límites de uso de claude.ai de un vis
 
 - Usa endpoints **no oficiales** de claude.ai: pueden cambiar sin aviso.
 - El contexto es una **estimación** (reglas por palabra/número/símbolo, escaladas según el modelo).
-- El contador de caché **supone** que claude.ai la guarda como la API: 5 min desde que empieza cada pedido (1 h se elige en Ajustes).
+- El contador de caché usa la caché de 1 h de claude.ai, contada desde que empieza cada pedido (5 min se elige en Ajustes).
 - Todo queda en tu navegador; solo habla con claude.ai.
 
 No está afiliada ni respaldada por Anthropic.

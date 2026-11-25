@@ -12,7 +12,7 @@
 //   ~1×–1,35× más tokens para el mismo texto (≈30 % en Sonnet 5 vs 4.6).
 // - Imágenes: ≈ ancho × alto / 750 tokens. Tope ~1.600 tokens (lado largo
 //   1568 px) en modelos viejos; ~4.784 tokens (lado largo 2576 px) en los nuevos.
-// - La caché dura 5 min (o 1 h) contados desde el INICIO del pedido que la
+// - La caché dura 5 min o 1 h (claude.ai usa 1 h) contados desde el INICIO del pedido que la
 //   escribió o leyó; leerla renueva el plazo. Leer de caché cuesta ~0,1× del
 //   precio normal (0,05× en Opus 5.5, 0,025× en Fable 5.1).
 //
@@ -20,7 +20,7 @@
 // - countTokens() imita el tokenizador viejo con reglas por tipo de texto
 //   (palabras, números, símbolos, espacios); después se escala por modelo.
 // - El razonamiento (thinking) de turnos anteriores NO se vuelve a mandar.
-// - claude.ai usa el mismo esquema de caché que la API. (Comprobado: claude.ai
+// - La caché de claude.ai se renueva igual que la de la API. (Comprobado: claude.ai
 //   NO informa aciertos de caché; ni el chat ni el stream de /completion traen
 //   usage/cache_read_input_tokens, así que la duración no se puede medir.)
 // - Lo que no vemos (system prompt, memoria, herramientas) no se cuenta.

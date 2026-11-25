@@ -9,7 +9,14 @@ function setup() {
   chrome.alarms.create(ALARM, { periodInMinutes: PERIOD_MIN });
   refresh();
 }
-chrome.runtime.onInstalled.addListener(setup);
+chrome.runtime.onInstalled.addListener(async ({ reason, previousVersion }) => {
+  // Hasta la 0.7.x la caché se asumía de 5 min; en claude.ai dura 1 h.
+  if (reason === "update" && /^0\.[0-7]\./.test(previousVersion || "")) {
+    const { cacheTtl } = await chrome.storage.local.get("cacheTtl");
+    if (cacheTtl === 5) await chrome.storage.local.remove("cacheTtl");
+  }
+  setup();
+});
 chrome.runtime.onStartup.addListener(setup);
 
 chrome.alarms.onAlarm.addListener((a) => { if (a.name === ALARM) refresh(); });
@@ -66,9 +73,9 @@ async function onTurn({ tokens }) {
 }
 
 async function sampleRate(usage) {
-  const fh = usage?.five_hour;
-  if (typeof fh?.utilization !== "number") return;
-  const now = { pct: fh.utilization, resetsAt: fh.resets_at || null, at: Date.now() };
+  const fh = sessionLimit(usage);
+  if (!fh) return;
+  const now = { pct: fh.pct, resetsAt: fh.resetsAt, at: Date.now() };
   const { snap, pending = { turns: 0, tokens: 0 }, samples = [] } =
     await chrome.storage.local.get(["snap", "pending", "samples"]);
   const sameWindow = snap && snap.resetsAt === now.resetsAt && now.pct >= snap.pct;
@@ -142,9 +149,9 @@ async function refresh() {
   }
 }
 
-// SUPOSICIÓN: la sesión de 5 h viene como five_hour.utilization (0–100).
+// La sesión de 5 h: limits[kind=session] o five_hour.utilization (0–100).
 async function updateBadge(usage) {
-  const pct = usage?.five_hour?.utilization;
+  const pct = sessionLimit(usage)?.pct;
   chrome.action.setBadgeText({ text: "" });
   if (typeof pct !== "number") { drawIcon(null); return; }
   drawIcon(pct);

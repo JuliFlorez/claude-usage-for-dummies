@@ -1,7 +1,6 @@
-// Nombres lindos (en i18n.js) para las claves que SUPONGO que devuelve /usage.
-// Cualquier otra clave con "utilization" numérico también se muestra.
+// Los límites salen de readLimits() (i18n.js), con nombres lindos del diccionario.
 // Duración de cada ventana, para dibujar la marca de "ritmo".
-const WINDOW_MS = { five_hour: 5 * 3600e3 };
+const WINDOW_MS = { session: 5 * 3600e3 };
 const weekMs = 7 * 24 * 3600e3;
 
 
@@ -35,7 +34,7 @@ function applyPrefs() {
   $("cacheTtlLabel").textContent = t.cacheTtl;
   $("ttl5").textContent = t.ttl5;
   $("ttl60").textContent = t.ttl60;
-  $("cacheTtl").value = String(state.cacheTtl || 5);
+  $("cacheTtl").value = String(ttl());
   $("stripCache").checked = state.stripCache !== false;
   $("stripFable").checked = state.stripFable !== false;
   $("stripFable").disabled = state.stripUsage === false; // sin límites en el chat, no aplica
@@ -88,7 +87,7 @@ function renderChat() {
 function msgsCard(c, win, t, lang) {
   const left = messagesLeft({
     total: c.total, perExchange: c.perExchange, window: win,
-    sessionPct: state.usage?.five_hour?.utilization, rate: state.sessionRate?.pctPerToken,
+    sessionPct: sessionLimit(state.usage)?.pct, rate: state.sessionRate?.pctPerToken,
   });
   if (!left) {
     return `<div class="limit card"><div class="row"><span class="name">${t.msgsTitle}</span></div>
@@ -107,7 +106,7 @@ function msgsCard(c, win, t, lang) {
     </div>`;
 }
 
-const ttl = () => state.cacheTtl || 5;
+const ttl = () => state.cacheTtl || 60; // en claude.ai la caché dura 1 h
 const ttlLabel = () => (ttl() >= 60 ? `${ttl() / 60} h` : `${ttl()} min`);
 
 // Tarjeta "Caché": cuenta regresiva y cuánto ahorrás si mandás a tiempo.
@@ -145,15 +144,9 @@ function tickCache() {
   $("cacheBar").style.width = `${Math.min(100, (left / (ttl() * 60e3)) * 100)}%`;
 }
 
-function prettify(key) {
-  const s = key.replace(/_/g, " ");
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
 function extractLimits(usage) {
-  return Object.entries(usage || {})
-    .filter(([, v]) => v && typeof v === "object" && typeof v.utilization === "number")
-    .map(([key, v]) => ({ key, label: tr().long[key] || prettify(key), pct: v.utilization, resetsAt: v.resets_at }));
+  const L = tr().long;
+  return readLimits(usage).map((l) => ({ ...l, label: limitLabel(l, L, true) }));
 }
 
 function fmtLeft(ms) {
@@ -169,7 +162,7 @@ function fmtAgo(ts) {
   return m < 60 ? tr().updatedMin(m) : tr().updatedH(Math.round(m / 60));
 }
 
-function limitEl({ key, label, pct, resetsAt }) {
+function limitEl({ group, label, pct, resetsAt }) {
   const el = document.createElement("section");
   el.className = "limit" + (pct >= 85 ? " hot" : pct >= 60 ? " warn" : "");
   const clamped = Math.max(0, Math.min(100, pct));
@@ -179,7 +172,7 @@ function limitEl({ key, label, pct, resetsAt }) {
   let paceHTML = "", left = "";
   const reset = resetsAt ? Date.parse(resetsAt) : NaN;
   if (!Number.isNaN(reset)) {
-    const win = WINDOW_MS[key] || weekMs;
+    const win = WINDOW_MS[group] || weekMs;
     const msLeft = reset - Date.now();
     const elapsed = Math.max(0, Math.min(100, (1 - msLeft / win) * 100));
     paceHTML = `<div class="pace" style="left:calc(${elapsed}% - 1px)" title="${tr().pace}"></div>`;
@@ -261,7 +254,7 @@ for (const id of ["stripUsage", "stripFable", "stripCtx", "stripCache"]) {
   $(id).addEventListener("change", (e) => chrome.storage.local.set({ [id]: e.target.checked }));
 }
 
-$("cacheTtl").addEventListener("change", (e) => chrome.storage.local.set({ cacheTtl: Number(e.target.value) || 5 }));
+$("cacheTtl").addEventListener("change", (e) => chrome.storage.local.set({ cacheTtl: Number(e.target.value) || 60 }));
 
 chrome.storage.onChanged.addListener(load);
 setInterval(render, 30e3); // refresca cuentas regresivas y "hace X min"
